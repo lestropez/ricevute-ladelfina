@@ -12,7 +12,7 @@
 :root{--bg:#f4f6f9;--card:#fff;--ink:#1b2430;--mut:#6b7686;--pri:#8f7625;--ok:#1e7a46;--warn:#9a6a00;--err:#b3261e;--line:#dfe4ea}
 @media (prefers-color-scheme:dark){:root{--bg:#11161d;--card:#1a212b;--ink:#e8edf3;--mut:#9aa6b5;--pri:#c9ad55;--line:#2c3542}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:110px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:90px}
 header{background:#B79935;color:#fff;padding:14px 16px calc(14px) 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
 header h1{font-size:18px;margin:0;flex:1}
 header button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:6px 10px;font-size:13px}
@@ -34,8 +34,8 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
 .item .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:50%;width:28px;height:28px;font-size:16px}
 .badge{position:absolute;top:4px;left:4px;padding:2px 6px;border-radius:6px;font-size:11px;color:#fff}
 .b-up{background:var(--warn)}.b-ok{background:var(--ok)}.b-err{background:var(--err)}
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;max-width:640px;margin:0 auto}
-.btn{flex:1;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px;font-weight:600}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;max-width:640px;margin:0 auto}
+.btn{padding:11px 6px;border-radius:12px;text-align:center;white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px;font-weight:600}
 .btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
 .btn:disabled{opacity:.5}
 .empty{text-align:center;padding:30px 10px}
@@ -71,7 +71,7 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
       <li>Fotografa con la fotocamera in modalità <b>Documento</b></li>
       <li>Apri la Galleria, tieni premuto e seleziona più foto (oppure usa il pulsante <b>Foto</b> qui sotto)</li>
       <li><b>Condividi</b> → <b>Spese</b></li>
-      <li>Controlla e premi <b>Invia a OneDrive</b></li>
+      <li>Controlla e premi <b>Invia</b></li>
     </ol>
   </div>
 
@@ -81,16 +81,16 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
   <p class="mut" id="dest" style="text-align:center"></p>
 </main>
 <div class="bar">
-  <label class="btn" style="text-align:center">Foto
+  <label class="btn">Foto
     <input id="pick" type="file" accept="image/*" multiple hidden>
   </label>
-  <label class="btn" style="text-align:center;flex:0 0 72px">PDF
+  <label class="btn">PDF
     <input id="pickpdf" type="file" accept="application/pdf" multiple hidden>
   </label>
-  <button class="btn pri" id="send" disabled>Invia a OneDrive</button>
+  <button class="btn pri" id="send" disabled>Invia</button>
 </div>
-<script src="config.js?v=6"></script>
+<script src="config.js?v=7"></script>
 <script src="msal-browser.min.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

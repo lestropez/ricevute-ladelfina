@@ -85,7 +85,7 @@ async function draw() {
   for (const it of items) if (!it.person) { it.person = person; if (it.pag === undefined) it.pag = lastPag; await qPut(it); }
   $("#empty").classList.toggle("hidden", items.length > 0);
   $("#send").disabled = !items.some(i => i.status !== "ok");
-  $("#send").textContent = items.length ? `Invia a OneDrive (${items.length})` : "Invia a OneDrive";
+  $("#send").textContent = items.length ? `Invia (${items.length})` : "Invia";
   const g = $("#grid"); g.innerHTML = "";
   for (const it of items) {
     const el = document.createElement("div"); el.className = "item";
@@ -202,40 +202,69 @@ const enc = p => p.split("/").map(encodeURIComponent).join("/");
 let docsId = null; const folderCache = {};
 async function ensureFolder(rel, tk) {
   if (folderCache[rel]) return folderCache[rel];
+  // 1) cartella già nota su questo telefono (nessuna chiamata)
+  try { const c = JSON.parse(localStorage.getItem("folder:" + rel) || "null"); if (c && c.id) return (folderCache[rel] = c); } catch (e) {}
   if (!docsId) {
     const d = await (await gfetch("/me/drive/special/documents", {}, tk)).json(); docsId = d.id;
   }
-  let parent = docsId, cur = "";
-  for (const seg of rel.split("/")) {
-    cur = cur ? cur + "/" + seg : seg;
-    if (folderCache[cur]) { parent = folderCache[cur].id; continue; }
-    let r = await gfetch(`/me/drive/items/${parent}:/${enc(seg)}`, {}, tk);
-    let it;
-    if (r.status === 404) {
-      r = await gfetch(`/me/drive/items/${parent}/children`, { method: "POST", body: JSON.stringify({ name: seg, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }) }, tk);
-      it = await r.json();
-    } else it = await r.json();
-    folderCache[cur] = it; parent = it.id;
+  // 2) percorso completo in una sola chiamata
+  let r = await gfetch(`/me/drive/items/${docsId}:/${enc(rel)}`, {}, tk);
+  let found = r.status !== 404 ? await r.json() : null;
+  if (!found) { // 3) crea le cartelle mancanti, una per livello
+    let parent = docsId;
+    for (const seg of rel.split("/")) {
+      let q = await gfetch(`/me/drive/items/${parent}:/${enc(seg)}`, {}, tk);
+      let it = q.status === 404 ? await (await gfetch(`/me/drive/items/${parent}/children`, { method: "POST", body: JSON.stringify({ name: seg, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }) }, tk)).json() : await q.json();
+      parent = it.id; found = it;
+    }
   }
-  return folderCache[rel];
+  const out = { id: found.id, webUrl: found.webUrl };
+  try { localStorage.setItem("folder:" + rel, JSON.stringify(out)); } catch (e) {}
+  return (folderCache[rel] = out);
 }
-async function upload(it, tk) {
-  const folder = await ensureFolder(C.baseFolder + "/" + it.person, tk);
+function dimenticaCartella(rel) { delete folderCache[rel]; try { localStorage.removeItem("folder:" + rel); } catch (e) {} }
+
+// Riduce le foto prima dell'invio: lato lungo max 2400 px, JPEG qualità 0,85 (uno scontrino resta leggibilissimo)
+async function comprimi(it) {
+  if (!/^image\/(jpeg|png|webp)/i.test(it.type) || it.blob.size < 700 * 1024) return { blob: it.blob, ext: ext(it) };
+  try {
+    const bmp = await createImageBitmap(it.blob, { imageOrientation: "from-image" });
+    const k = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement("canvas"); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+    cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close && bmp.close();
+    const b = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85));
+    return b && b.size < it.blob.size ? { blob: b, ext: "jpg" } : { blob: it.blob, ext: ext(it) };
+  } catch (e) { return { blob: it.blob, ext: ext(it) }; }
+}
+
+async function upload(it, tk, retry = true) {
+  const rel = C.baseFolder + "/" + it.person;
+  const folder = await ensureFolder(rel, tk);
   const cat = C.categories.find(c => c.label === it.cat);
   const chi = cat && cat.conChi ? cleanNote(it.conChi) : "";
-  const when = await shotStamp(it);
+  const when = await shotStamp(it);           // data dello scatto letta dall'originale (EXIF)
+  const z = await comprimi(it);
   const base = `${when}_${it.person}${cat ? "_" + cat.code : ""}${chi ? "_" + chi : ""}`;
-  const fname = `${base}.${ext(it)}`;
-  const s = await (await gfetch(`/me/drive/items/${folder.id}:/${enc(fname)}:/createUploadSession`,
-    { method: "POST", body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }, tk)).json();
-  const size = it.blob.size, CH = 320 * 1024 * 10;
-  let res;
-  for (let start = 0; start < size; start += CH) {
-    const end = Math.min(start + CH, size);
-    res = await fetch(s.uploadUrl, { method: "PUT", headers: { "Content-Range": `bytes ${start}-${end - 1}/${size}` }, body: it.blob.slice(start, end) });
-    if (!res.ok) throw new Error(`Upload ${res.status}`);
+  const fname = `${base}.${z.ext}`;
+  let done;
+  if (z.blob.size < 4 * 1024 * 1024) {        // file piccolo: una sola chiamata
+    const r = await fetch(G + `/me/drive/items/${folder.id}:/${enc(fname)}:/content?@microsoft.graph.conflictBehavior=rename`,
+      { method: "PUT", headers: { Authorization: "Bearer " + tk, "Content-Type": z.blob.type || "application/octet-stream" }, body: z.blob });
+    if (r.status === 404 && retry) { dimenticaCartella(rel); return upload(it, tk, false); }
+    if (!r.ok) throw new Error(`Upload ${r.status}`);
+    done = await r.json();
+  } else {
+    const sr = await gfetch(`/me/drive/items/${folder.id}:/${enc(fname)}:/createUploadSession`,
+      { method: "POST", body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }, tk);
+    if (sr.status === 404 && retry) { dimenticaCartella(rel); return upload(it, tk, false); }
+    const s = await sr.json(); const size = z.blob.size, CH = 320 * 1024 * 16; let res;
+    for (let start = 0; start < size; start += CH) {
+      const end = Math.min(start + CH, size);
+      res = await fetch(s.uploadUrl, { method: "PUT", headers: { "Content-Range": `bytes ${start}-${end - 1}/${size}` }, body: z.blob.slice(start, end) });
+      if (!res.ok) throw new Error(`Upload ${res.status}`);
+    }
+    done = await res.json();
   }
-  const done = await res.json();
   // scheda con i dati inseriti al momento dello scatto (stesso nome, .json)
   const info = { file: done.name, persona: it.person, categoria: it.cat || "", conChi: (cat && cat.conChi) ? (it.conChi || "") : "",
     note: it.note || "", pagamento: it.pag === "Altro" ? ("Altro: " + (it.pagAltro || "")) : (it.pag || ""), dataScatto: when, inviato: new Date().toISOString(), nomeOriginale: it.name || "" };
@@ -255,14 +284,16 @@ $("#send").onclick = async () => {
   const items = (await qAll()).filter(i => i.status !== "ok");
   let ok = 0, ko = 0, lastUrl = "";
   log(`Invio di ${items.length} file…`);
-  for (const it of items) {
+  const uno = async it => {
     it.status = "up"; await qPut(it); await draw();
     try {
       const r = await upload(it, tk); ok++; lastUrl = r.folderUrl;
       log(`✓ ${r.name}`); await qDel(it.id); if (urls.has(it.id)) { URL.revokeObjectURL(urls.get(it.id)); urls.delete(it.id); }
     } catch (e) { ko++; it.status = "err"; await qPut(it); log(`✗ ${it.name}: ${e.message}`); }
     await draw();
-  }
+  };
+  // 3 invii in parallelo
+  const coda = items.slice(); await Promise.all([0, 1, 2].map(async () => { while (coda.length) await uno(coda.shift()); }));
   log(`Fatto: ${ok} inviati${ko ? ", " + ko + " in errore (riprova)" : ""}.`);
   if (lastUrl) $("#dest").innerHTML = `<a href="${lastUrl}" target="_blank" rel="noopener">Apri la cartella su OneDrive</a>`;
   sending = false; draw();
