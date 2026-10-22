@@ -1,0 +1,24 @@
+{
+  "name": "Ricevute LaDelfina",
+  "short_name": "Ricevute",
+  "description": "Invio ricevute e scontrini a OneDrive per la riconciliazione",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1f3a5f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "share_target": {
+    "action": "./share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        { "name": "files", "accept": ["image/*", "application/pdf", ".jpg", ".jpeg", ".png", ".heic", ".pdf"] }
+      ]
+    }
+  }
+}
