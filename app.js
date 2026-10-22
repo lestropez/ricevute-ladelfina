@@ -230,6 +230,8 @@ $("#pick").onchange = async e => {
   e.target.value = ""; draw();
 };
 
+$("#pickpdf").onchange = e => $("#pick").onchange(e);
+
 function log(s) { $("#logcard").classList.remove("hidden"); $("#log").textContent += s + "\n"; }
 function alertLog(s) { log(s); }
 

@@ -58,7 +58,7 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
     <b>Nessuna ricevuta in coda</b>
     <ol class="mut">
       <li>Fotografa con la fotocamera in modalità <b>Documento</b></li>
-      <li>Apri la Galleria, tieni premuto e seleziona più foto</li>
+      <li>Apri la Galleria, tieni premuto e seleziona più foto (oppure usa il pulsante <b>Foto</b> qui sotto)</li>
       <li><b>Condividi</b> → <b>Ricevute</b></li>
       <li>Controlla e premi <b>Invia a OneDrive</b></li>
     </ol>
@@ -70,13 +70,16 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
   <p class="mut" id="dest" style="text-align:center"></p>
 </main>
 <div class="bar">
-  <label class="btn" style="text-align:center">Galleria
-    <input id="pick" type="file" accept="image/*,application/pdf" multiple hidden>
+  <label class="btn" style="text-align:center">Foto
+    <input id="pick" type="file" accept="image/*" multiple hidden>
+  </label>
+  <label class="btn" style="text-align:center;flex:0 0 72px">PDF
+    <input id="pickpdf" type="file" accept="application/pdf" multiple hidden>
   </label>
   <button class="btn pri" id="send" disabled>Invia a OneDrive</button>
 </div>
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="msal-browser.min.js"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
