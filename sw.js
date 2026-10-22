@@ -1,4 +1,4 @@
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = ["./", "index.html", "app.js", "config.js", "msal-browser.min.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
@@ -45,7 +45,7 @@ self.addEventListener("fetch", e => {
   }
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   // rete prima (aggiornamenti immediati), cache se offline
-  e.respondWith(fetch(e.request).then(r => {
+  e.respondWith(fetch(e.request, { cache: "no-cache" }).then(r => {
     if (r.ok) { const cp = r.clone(); caches.open("shell-" + VERSION).then(c => c.put(e.request, cp)); }
     return r;
   }).catch(() => caches.match(e.request, { ignoreSearch: true })));
