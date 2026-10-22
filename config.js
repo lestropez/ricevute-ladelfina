@@ -1,6 +1,6 @@
 // Configurazione — da compilare dopo la registrazione Microsoft (Entra ID)
 window.APP_CONFIG = {
-  clientId: "INSERIRE_CLIENT_ID",
+  clientId: "2c827db4-adae-400f-8e84-75cf7c174784",
   // "consumers" = solo account Microsoft personali (e_pedrotti@outlook.it)
   authority: "https://login.microsoftonline.com/consumers",
   // Percorso relativo alla cartella speciale "Documenti" di OneDrive
