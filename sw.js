@@ -1,6 +1,6 @@
-const VERSION = "v5";
+const VERSION = "v6";
 const SHELL = ["./", "index.html", "app.js", "config.js", "msal-browser.min.js",
-  "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+  "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open("shell-" + VERSION).then(c => c.addAll(SHELL)));
