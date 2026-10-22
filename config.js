@@ -6,6 +6,8 @@ window.APP_CONFIG = {
   // Percorso relativo alla cartella speciale "Documenti" di OneDrive
   baseFolder: "LaDelfina Srls/Banca/Ricevute e scontrini/00 - Da elaborare",
   persons: ["Emanuele", "Francesca"],
+  // Metodi di pagamento (facoltativo); "Altro" chiede un testo libero
+  payments: ["Carta Nexi", "Revolut", "Bonifico", "Contanti", "Altro"],
   // Categorie del commercialista; "conChi" = chiede con chi / per quale cliente
   categories: [
     { label: "Ristorante", code: "RIST", conChi: true },

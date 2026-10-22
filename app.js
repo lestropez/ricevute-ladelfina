@@ -81,7 +81,8 @@ function ext(it) {
 const urls = new Map();
 async function draw() {
   const items = await qAll();
-  for (const it of items) if (!it.person) { it.person = person; await qPut(it); }
+  let lastPag = ""; try { lastPag = localStorage.getItem("pag") || ""; } catch (e) {}
+  for (const it of items) if (!it.person) { it.person = person; if (it.pag === undefined) it.pag = lastPag; await qPut(it); }
   $("#empty").classList.toggle("hidden", items.length > 0);
   $("#send").disabled = !items.some(i => i.status !== "ok");
   $("#send").textContent = items.length ? `Invia a OneDrive (${items.length})` : "Invia a OneDrive";
@@ -105,6 +106,8 @@ async function draw() {
       <div class="meta"><span class="who">${it.person} ⇄</span>
       <select class="cat">${opts}</select>
       <input class="chi${cat && cat.conChi ? "" : " hidden"}" placeholder="Con chi / per quale cliente" value="${q(it.conChi)}">
+      <select class="pag"><option value="">Pagato con… (facoltativo)</option>${(C.payments || []).map(p => `<option${p === it.pag ? " selected" : ""}>${p}</option>`).join("")}</select>
+      <input class="pagAltro${it.pag === "Altro" ? "" : " hidden"}" placeholder="Specifica il pagamento" value="${q(it.pagAltro)}">
       <input class="note" placeholder="Nota (facoltativa)" value="${q(it.note)}"></div>`;
     el.querySelector(".x").onclick = async () => { await qDel(it.id); draw(); };
     const th = el.querySelector(".thumb");
@@ -120,6 +123,11 @@ async function draw() {
       chi.classList.toggle("hidden", !(c && c.conChi)); if (c && c.conChi) chi.focus();
     };
     el.querySelector(".chi").oninput = async e => { it.conChi = e.target.value; await qPut(it); };
+    el.querySelector(".pag").onchange = async e => {
+      it.pag = e.target.value; await qPut(it); try { localStorage.setItem("pag", it.pag); } catch (x) {}
+      const pa = el.querySelector(".pagAltro"); pa.classList.toggle("hidden", it.pag !== "Altro"); if (it.pag === "Altro") pa.focus();
+    };
+    el.querySelector(".pagAltro").oninput = async e => { it.pagAltro = e.target.value; await qPut(it); };
     el.querySelector(".note").oninput = async e => { it.note = e.target.value; await qPut(it); };
     g.appendChild(el);
   }
@@ -230,7 +238,7 @@ async function upload(it, tk) {
   const done = await res.json();
   // scheda con i dati inseriti al momento dello scatto (stesso nome, .json)
   const info = { file: done.name, persona: it.person, categoria: it.cat || "", conChi: (cat && cat.conChi) ? (it.conChi || "") : "",
-    note: it.note || "", dataScatto: when, inviato: new Date().toISOString(), nomeOriginale: it.name || "" };
+    note: it.note || "", pagamento: it.pag === "Altro" ? ("Altro: " + (it.pagAltro || "")) : (it.pag || ""), dataScatto: when, inviato: new Date().toISOString(), nomeOriginale: it.name || "" };
   const jn = done.name.replace(/\.[^.]+$/, "") + ".json";
   await gfetch(`/me/drive/items/${folder.id}:/${enc(jn)}:/content`, { method: "PUT", body: JSON.stringify(info, null, 2) }, tk);
   return { name: done.name, folderUrl: folder.webUrl };
@@ -265,7 +273,7 @@ $("#pick").onchange = async e => {
   const files = [...e.target.files]; const now = Date.now();
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    await qPut({ id: now + "_" + i + "_" + Math.random().toString(36).slice(2, 7), name: f.name, type: f.type, blob: f, added: now, lastModified: f.lastModified || now, person, note: "", status: "new" });
+    await qPut({ id: now + "_" + i + "_" + Math.random().toString(36).slice(2, 7), name: f.name, type: f.type, blob: f, added: now, lastModified: f.lastModified || now, person, pag: (() => { try { return localStorage.getItem("pag") || ""; } catch (e) { return ""; } })(), note: "", status: "new" });
   }
   e.target.value = ""; draw();
 };
