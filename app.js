@@ -92,6 +92,8 @@ async function draw() {
     if (/^image\//.test(it.type) && !/heic/i.test(it.type)) {
       if (!urls.has(it.id)) urls.set(it.id, URL.createObjectURL(it.blob));
       prev = `<img src="${urls.get(it.id)}" alt="">`;
+    } else if (/pdf/i.test(it.type) || /\.pdf$/i.test(it.name || "")) {
+      prev = `<canvas class="pdfc" width="96" height="140"></canvas><div class="fname">${(it.name || "").replace(/</g, "&lt;")}</div>`;
     } else prev = `<div class="pdf">${ext(it).toUpperCase()}</div>`;
     const badge = it.status === "up" ? '<span class="badge b-up">invio…</span>' :
       it.status === "err" ? '<span class="badge b-err">errore</span>' : "";
@@ -105,6 +107,10 @@ async function draw() {
       <input class="chi${cat && cat.conChi ? "" : " hidden"}" placeholder="Con chi / per quale cliente" value="${q(it.conChi)}">
       <input class="note" placeholder="Nota (facoltativa)" value="${q(it.note)}"></div>`;
     el.querySelector(".x").onclick = async () => { await qDel(it.id); draw(); };
+    const th = el.querySelector(".thumb");
+    th.onclick = () => apriAnteprima(it);
+    const cv = el.querySelector("canvas.pdfc");
+    if (cv) miniaturaPdf(it.blob, cv);
     el.querySelector(".who").onclick = async () => {
       const i = C.persons.indexOf(it.person); it.person = C.persons[(i + 1) % C.persons.length]; await qPut(it); draw();
     };
@@ -117,6 +123,40 @@ async function draw() {
     el.querySelector(".note").oninput = async e => { it.note = e.target.value; await qPut(it); };
     g.appendChild(el);
   }
+}
+
+// ---------- Anteprima (foto e PDF) ----------
+const PDFJS = "./";
+let pdfjsP = null;
+function pdfjs() {
+  if (!pdfjsP) pdfjsP = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = PDFJS + "pdf.min.js";
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; res(window.pdfjsLib); };
+    s.onerror = () => { pdfjsP = null; rej(new Error("pdf.js non caricato")); }; document.head.appendChild(s);
+  });
+  return pdfjsP;
+}
+async function renderPagina(pdf, n, canvas, larghezza) {
+  const p = await pdf.getPage(n); const v1 = p.getViewport({ scale: 1 });
+  const sc = larghezza / v1.width * (window.devicePixelRatio || 1); const v = p.getViewport({ scale: sc });
+  canvas.width = v.width; canvas.height = v.height; canvas.style.width = larghezza + "px";
+  await p.render({ canvasContext: canvas.getContext("2d"), viewport: v }).promise;
+}
+async function miniaturaPdf(blob, canvas) {
+  try { const L = await pdfjs(); const pdf = await L.getDocument({ data: await blob.arrayBuffer() }).promise;
+    await renderPagina(pdf, 1, canvas, 96); canvas.style.height = "auto"; } catch (e) { /* resta il riquadro */ }
+}
+async function apriAnteprima(it) {
+  const ov = document.createElement("div"); ov.className = "viewer";
+  ov.innerHTML = `<div class="vbar"><span>${(it.name || "").replace(/</g, "&lt;")}</span><button>Chiudi</button></div><div class="vbody"></div>`;
+  ov.querySelector("button").onclick = () => ov.remove(); document.body.appendChild(ov);
+  const body = ov.querySelector(".vbody"); const W = Math.min(window.innerWidth - 16, 900);
+  if (/^image\//.test(it.type)) { const im = document.createElement("img"); im.src = URL.createObjectURL(it.blob); body.appendChild(im); return; }
+  try {
+    const L = await pdfjs(); const pdf = await L.getDocument({ data: await it.blob.arrayBuffer() }).promise;
+    for (let n = 1; n <= Math.min(pdf.numPages, 10); n++) { const c = document.createElement("canvas"); body.appendChild(c); await renderPagina(pdf, n, c, W); }
+    if (pdf.numPages > 10) body.insertAdjacentHTML("beforeend", `<p>… altre ${pdf.numPages - 10} pagine</p>`);
+  } catch (e) { body.innerHTML = "<p>Anteprima non disponibile: " + e.message + "</p>"; }
 }
 
 // ---------- Microsoft login ----------

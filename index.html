@@ -41,6 +41,16 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
 .empty ol{text-align:left;display:inline-block;margin:10px 0 0;padding-left:20px}
 #log{white-space:pre-wrap;font-size:12px}
 .hidden{display:none}
+.item canvas.pdfc{width:96px;height:auto;max-height:140px;display:block;background:#fff;border-radius:8px;border:1px solid var(--line)}
+.item .fname{font-size:10px;color:var(--mut);word-break:break-all;max-height:28px;overflow:hidden;margin-top:2px}
+.item .thumb{cursor:zoom-in}
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:20;display:flex;flex-direction:column}
+.viewer .vbar{background:#000;display:flex;align-items:center;gap:10px;padding:10px 12px;color:#fff;font-size:13px}
+.viewer .vbar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer .vbar button{background:#fff;color:#000;border:0;border-radius:8px;padding:8px 14px;font-weight:600}
+.viewer .vbody{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.viewer .vbody img,.viewer .vbody canvas{max-width:100%;background:#fff}
+.viewer .vbody p{color:#fff}
 </style>
 </head>
 <body>
@@ -78,8 +88,8 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
   </label>
   <button class="btn pri" id="send" disabled>Invia a OneDrive</button>
 </div>
-<script src="config.js?v=3"></script>
+<script src="config.js?v=4"></script>
 <script src="msal-browser.min.js"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const VERSION = "v3";
+const VERSION = "v4";
 const SHELL = ["./", "index.html", "app.js", "config.js", "msal-browser.min.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
